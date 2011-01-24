@@ -1,0 +1,43 @@
+<html>
+<head>
+  <title>PubSub</title>
+  <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+  <script type="text/javascript" src="/pump.io/pump.io.js"></script>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.js"></script>
+</head>
+<body>
+  <div id="content"></div>
+  <script type="text/javascript">    
+    var pump = new Pump({ port: 3000});
+    $(document).ready(function() {
+      var content = $('#content');
+      
+      var prepend = function (str) {
+        content.prepend($('<div style="padding:10px 0px"></div>').html((new Date()).toString() + ' - ' + str));
+      };
+
+      pump.on('connect', function() {
+        prepend("<b>Connected!</b>");
+        pump.send({type: 'authenticate', data: { token: 'joe', user_id: 2}});
+        setTimeout(function () {
+          pump.subscribe('/joeishere');
+        }, 2000);
+      });
+      
+      pump.on('reconnecting', function () {
+        prepend("<b>Reconnecting...</b>");
+      });
+
+      pump.on('message', function(message){
+        prepend(JSON.stringify(message));
+      });
+
+      pump.on('disconnect', function() {
+        prepend("<b>Disconnected!</b>");
+      });
+
+      pump.connect();
+    });
+  </script>
+</body>
+</html>
