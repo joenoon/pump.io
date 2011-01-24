@@ -1,0 +1,16 @@
+{ "name" : "pump.io"
+, "description" : "Scalable redis-backed, user/session aware, pubsub with optional presence extensions built on top of socket.io"
+, "version" : "0.0.2"
+, "author" : "joenoon"
+, "licenses" :
+  [ { "type" : "MIT"
+    , "url" : "http://github.com/joenoon/pump.io/raw/master/README.txt"
+    }
+  ]
+, "repository" :
+  { "type" : "git"
+  , "url" : "http://github.com/joenoon/pump.io.git"
+  }
+, "engine" : [ "node >=0.1.102" ]
+, "main" : "./index"
+}
