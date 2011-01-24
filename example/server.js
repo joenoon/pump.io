@@ -1,5 +1,6 @@
 (function() {
-  var Pump, core_listeners, db_listeners, express, pump, stub_listeners;
+  var Pump, core_listeners, db_listeners, express, pump, stub_listeners, sys;
+  sys = require('sys');
   express = require('express');
   Pump = require('../lib/pump.io');
   core_listeners = require('../lib/pump.io/core_listeners.js');
@@ -10,6 +11,5 @@
   pump.useAll(core_listeners);
   pump.useAll(db_listeners);
   pump.useAll(stub_listeners);
-  pump.emit('serverOnline', pump.server_id);
   module.exports = pump.server;
 }).call(this);
