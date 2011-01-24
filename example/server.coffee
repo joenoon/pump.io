@@ -1,3 +1,4 @@
+sys = require 'sys'
 express = require 'express'
 Pump = require '../lib/pump.io'
 core_listeners = require '../lib/pump.io/core_listeners.js'
@@ -10,10 +11,6 @@ pump.server.use express.staticProvider("#{__dirname}/public")
 pump.useAll(core_listeners)
 pump.useAll(db_listeners)
 pump.useAll(stub_listeners)    # comment this one out and add your own instead
-
-pump.emit 'serverOnline', pump.server_id
-
-# pump.listen()
 
 module.exports = pump.server
 
