@@ -35,10 +35,8 @@ class Pump extends EventEmitter
     @__bind_listeners()
     if @server_sweeper
       @__server_sweeper_interval = setInterval (() => @emit('serverSweep')), 10000
-    @emit 'serverOnline', @server_id
     
-  listen: ->
-    @server.listen @port, @host
+  reportIn: ->
     @emit 'serverOnline', @server_id
   
   use: (unique_name, type, fn) ->
