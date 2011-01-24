@@ -194,5 +194,9 @@ class Pump extends EventEmitter
 
   @create: (cluster_name, port, host, server_sweeper) ->
     return (new Pump(cluster_name, port, host, server_sweeper))
+
+Pump.core_listeners = require './core_listeners.js'
+Pump.db_listeners = require './db_listeners.js'
+Pump.stub_listeners = require './stub_listeners.js'
   
 module.exports = Pump
