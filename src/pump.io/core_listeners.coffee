@@ -49,12 +49,13 @@ module.exports =
   'core.payload.pingpong':
     'payload': (payload) ->
       if @server_id in payload.server_ids && payload.type in [ 'ping', 'pong' ]
-        console.log "core.payload.pingpong"
         if payload.type == 'ping'
+          console.log "ping on #{@server_id}"
           @s2s
             server_ids: [ payload.origin_server_id ]
             type: 'pong'
         else if payload.type == 'pong'
+          console.log "pong on #{@server_id} from #{payload.origin_server_id}"
           @server_checkins[payload.origin_server_id] = true
 
   'core.payload.messageToUserIds':
@@ -73,7 +74,7 @@ module.exports =
   'core.payload.message':
     'payload': (payload) ->
       return unless payload.session_ids.length > 0
-      console.log "core.payload.message: #{sys.inspect(payload)}"
+      console.log "core.payload.message: type: #{payload.type}, session_ids: #{sys.inspect(payload.session_ids)}"
       ci = @socket.clients
       client_payload = @clientPayload(payload)
       payload.session_ids.forEach (session_id) =>
