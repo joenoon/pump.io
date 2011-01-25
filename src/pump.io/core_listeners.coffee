@@ -67,8 +67,8 @@ module.exports =
       client_payload = @clientPayload(payload)
       @db.sunion session_keys, (err, session_ids) =>
         session_ids.forEach (session_id) =>
-          if cli = ci[session_id]
-            cli.send client_payload
+          if session_id of ci
+            ci[session_id].send client_payload
 
   'core.payload.message':
     'payload': (payload) ->
@@ -77,8 +77,8 @@ module.exports =
       ci = @socket.clients
       client_payload = @clientPayload(payload)
       payload.session_ids.forEach (session_id) =>
-        if cli = ci[session_id]
-          cli.send client_payload
+        if session_id of ci
+          ci[session_id].send client_payload
 
   'core.subscriberUnsubscribed':
     'subscriberUnsubscribed': (channel, subscription_count) ->

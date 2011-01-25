@@ -36,9 +36,6 @@ class Pump extends EventEmitter
     if @server_sweeper
       @__server_sweeper_interval = setInterval (() => @emit('serverSweep')), 10000
     
-  reportIn: ->
-    @emit 'serverOnline', @server_id
-  
   use: (unique_name, type, fn) ->
     that = this
     @__listeners[unique_name] = () ->
@@ -72,8 +69,14 @@ class Pump extends EventEmitter
     obj.server_ids ||= []
     obj.session_ids ||= []
     obj.user_ids ||= []
-    if obj.server_ids.length > 0 || obj.session_ids.length > 0 || obj.user_ids.length > 0
-      console.log "s2s: #{sys.inspect(obj)}"
+    if obj.user_ids.length > 0
+      session_keys = for user_id in obj.user_ids
+        @rkey('user_id', user_id, 'session_ids')
+      @db.sunion session_keys, (err, session_ids) =>
+        obj.user_ids = []
+        obj.session_ids = session_ids
+        @publisher.publish @cluster_name, @toJSON(obj)
+    else if obj.server_ids.length > 0 || obj.session_ids.length > 0
       @publisher.publish @cluster_name, @toJSON(obj)
     else
       console.log "s2s not sent because no recipients: #{sys.inspect(obj)}"

@@ -9,6 +9,7 @@ module.exports =
   'core.dbClientConnect':
     'dbClientConnect': (server_id, session_id) ->
       console.log "core.dbClientConnect: #{server_id}, #{session_id}"
+      @db.sadd @rkey('server_ids'), server_id
       @db.sadd @rkey('server_id', server_id, 'session_ids'), session_id
 
   'core.dbClientDisconnect':
