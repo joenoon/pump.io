@@ -109,4 +109,4 @@ module.exports =
       console.log "core.dbPubSubLeaveAll: #{session_id}"
       @db.smembers @rkey('session_id', session_id, 'channels'), (err, channels) =>
         for channel in channels
-          @emit 'dbPubSub', session_id, channel, 'unavailable'
+          @emit 'dbPubSub', session_id, channel, { state: 'unavailable' }
