@@ -40,12 +40,12 @@ class Pump extends EventEmitter
     that = this
     @__listeners[unique_name] = () ->
       return fn.apply(that, arguments)
+    console.log "using listener on #{type}: #{unique_name}"
     @on type, @__listeners[unique_name]
   
   useAll: (hash) ->
     for unique_name, data of hash
       for type, fn of data
-        console.log "using listener on #{type}: #{unique_name}"
         @use unique_name, type, fn
     
   unuse: (unique_name, type) ->
