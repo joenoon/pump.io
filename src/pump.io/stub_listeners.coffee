@@ -10,7 +10,7 @@ module.exports =
 
   'stub.pubsubCheck':
     'pubsubCheck': (message, client) ->
-      @emit 'pubsub', client, message.data.channel, message.data.state
+      @emit 'pubsub', client, message.channel, message.data
       # special states:
       # unavailable : removes client from channel.  if they were state 'pubsub', no presence sent out
       # subscribed : subscribes a client to channel.  no presence

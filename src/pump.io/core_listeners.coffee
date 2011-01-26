@@ -25,7 +25,7 @@ module.exports =
       console.log "core.clientMessage: #{sys.inspect(message)}, #{client.sessionId}"
       if message.type == 'authenticate'
         @emit 'authenticate', message, client
-      else if message.type == 'pubsub' && message.data.channel
+      else if message.type == 'presence' && message.channel
         @emit 'pubsubCheck', message, client
 
   'core.authenticationSuccess':
@@ -57,19 +57,6 @@ module.exports =
         else if payload.type == 'pong'
           console.log "pong on #{@server_id} from #{payload.origin_server_id}"
           @server_checkins[payload.origin_server_id] = true
-
-  'core.payload.messageToUserIds':
-    'payload': (payload) ->
-      return unless payload.user_ids.length > 0
-      console.log "core.payload.messageToUserIds: #{sys.inspect(payload.user_ids)}"
-      session_keys = for user_id in payload.user_ids
-        @rkey('user_id', user_id, 'session_ids')
-      ci = @socket.clients
-      client_payload = @clientPayload(payload)
-      @db.sunion session_keys, (err, session_ids) =>
-        session_ids.forEach (session_id) =>
-          if session_id of ci
-            ci[session_id].send client_payload
 
   'core.payload.message':
     'payload': (payload) ->
@@ -106,5 +93,5 @@ module.exports =
       @emit 'dbServerSweep'
       
   'core.pubsub':
-    'pubsub': (client, channel, state) ->
-      @emit 'dbPubSub', client.sessionId, channel, state
+    'pubsub': (client, channel, data) ->
+      @emit 'dbPubSub', client.sessionId, channel, data

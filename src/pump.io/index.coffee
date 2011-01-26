@@ -76,6 +76,10 @@ class Pump extends EventEmitter
         obj.user_ids = []
         obj.session_ids = session_ids
         @publisher.publish @cluster_name, @toJSON(obj)
+    else if obj.channel
+      @db.smembers @rkey('channel', obj.channel, 'session_ids'), (err, session_ids) =>
+        obj.session_ids = session_ids
+        @publisher.publish @cluster_name, @toJSON(obj)
     else if obj.server_ids.length > 0 || obj.session_ids.length > 0
       @publisher.publish @cluster_name, @toJSON(obj)
     else

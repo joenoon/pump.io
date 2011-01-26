@@ -45,9 +45,9 @@ class Pump
     
   subscribe: (channel, state='available') ->
     @send
-      type: 'pubsub'
+      type: 'presence'
+      channel: channel
       data:
-        channel: channel
         state: state
   
   unsubscribe: (channel) ->
