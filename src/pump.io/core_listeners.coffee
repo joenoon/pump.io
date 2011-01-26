@@ -22,7 +22,7 @@ module.exports =
   'core.clientMessage':
     'clientMessage': (message, client) ->
       message = @parseIncoming(message)
-      console.log "core.clientMessage: #{sys.inspect(message)}, #{client.sessionId}"
+      console.log "core.clientMessage: #{message.type}, #{client.sessionId}"
       if message.type == 'authenticate'
         @emit 'authenticate', message, client
       else if message.type == 'presence' && message.channel
@@ -61,7 +61,7 @@ module.exports =
   'core.payload.message':
     'payload': (payload) ->
       return unless payload.session_ids.length > 0
-      console.log "core.payload.message: type: #{payload.type}, session_ids: #{sys.inspect(payload.session_ids)}"
+      console.log "core.payload.message: type: #{payload.type}, session_ids: #{payload.session_ids.join(',')}"
       ci = @socket.clients
       client_payload = @clientPayload(payload)
       payload.session_ids.forEach (session_id) =>

@@ -65,8 +65,9 @@ module.exports =
 
   'core.dbPubSub':
     'dbPubSub': (session_id, channel, data) ->
-      console.log "core.dbPubSub: #{session_id}, #{channel}, #{sys.inspect(data)}"
-      state = data.state || 'available'
+      console.log "core.dbPubSub: #{session_id}, #{channel}, state: #{data.state}"
+      data.state ||= 'available'
+      state = data.state
       presence = if state == 'subscribed' then false else true
       if state == 'unavailable'
         @db.srem @rkey('session_id', session_id, 'channels'), channel, (err, res) =>
