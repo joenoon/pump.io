@@ -49,6 +49,7 @@ class Pump extends EventEmitter
         @use unique_name, type, fn
     
   unuse: (unique_name, type) ->
+    console.log "un-using listener on #{type}: #{unique_name}"
     @removeListener type, @__listeners[unique_name]
     delete @__listeners[unique_name]
   
