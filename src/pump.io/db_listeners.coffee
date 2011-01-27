@@ -80,7 +80,7 @@ module.exports =
                   @db.smembers @rkey('channel', channel, 'session_ids'), (err, session_ids) =>
                     @db.get @rkey('session_id', session_id, 'user_id'), (err, user_id) =>
                       # send unavailable presence of session to all subscribers
-                      @s2s({ type: 'presence', from: @resource(session_id, user_id), session_ids: session_ids, channel: channel, data: { state: 'unavailable' } })
+                      @s2s({ type: 'presence', from: @resource(session_id, user_id), session_ids: session_ids.concat([ session_id ]), channel: channel, data: { state: 'unavailable' } })
       else
         data_s = @toJSON(data)
         @db.sadd @rkey('session_id', session_id, 'channels'), channel, (err, res) =>
