@@ -42,16 +42,19 @@ class Pump extends EventEmitter
       return fn.apply(that, arguments)
     console.log "using listener on #{type}: #{unique_name}"
     @on type, @__listeners[unique_name]
+    return
   
   useAll: (hash) ->
     for unique_name, data of hash
       for type, fn of data
         @use unique_name, type, fn
+    return
     
   unuse: (unique_name, type) ->
     console.log "un-using listener on #{type}: #{unique_name}"
     @removeListener type, @__listeners[unique_name]
     delete @__listeners[unique_name]
+    return
   
   rkey: () ->
     arr = for arg in arguments
@@ -154,6 +157,8 @@ class Pump extends EventEmitter
 
     @subscriber.on 'unsubscribe', (channel, subscription_count) =>
       @emit 'subscriberUnsubscribed', channel, subscription_count
+    
+    return
       
   _checkRequest: (req, res, next) ->
     path = url.parse(req.url).pathname

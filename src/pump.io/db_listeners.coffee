@@ -11,6 +11,7 @@ module.exports =
       console.log "core.dbClientConnect: #{server_id}, #{session_id}"
       @db.sadd @rkey('server_ids'), server_id
       @db.sadd @rkey('server_id', server_id, 'session_ids'), session_id
+      return
 
   'core.dbClientDisconnect':
     'dbClientDisconnect': (server_id, session_id) ->
@@ -20,26 +21,32 @@ module.exports =
       @db.get @rkey('session_id', session_id, 'user_id'), (err, user_id) =>
         @db.srem @rkey('user_id', user_id, 'session_ids'), session_id
         @db.del @rkey('session_id', session_id, 'user_id')
+        return
+      return
   
   'core.dbAuthenticated':
     'dbAuthenticated': (session_id, user_id) ->
       console.log "core.dbAuthenticated: #{session_id}, #{user_id}"
       @db.set @rkey('session_id', session_id, 'user_id'), user_id
       @db.sadd @rkey('user_id', user_id, 'session_ids'), session_id
+      return
 
   'core.dbServerOnline':
     'dbServerOnline': (server_id) ->
       console.log "core.dbServerOnline: #{server_id}"
       @db.sadd @rkey('server_ids'), server_id
+      return
 
   'core.dbServerOffline':
     'dbServerOffline': (server_id) ->
       console.log "core.dbServerOffline: #{server_id}"
       @db.srem @rkey('server_ids'), server_id
       @db.smembers @rkey('server_id', server_id, 'session_ids'), (err, session_ids) =>
-        session_ids.forEach (session_id) =>
+        for session_id in session_ids
           @emit 'dbClientDisconnect', server_id, session_id
         @db.del @rkey('server_id', server_id, 'session_ids')
+        return
+      return
 
   'core.dbServerSweep':
     'dbServerSweep': ->
@@ -59,9 +66,11 @@ module.exports =
         setTimeout () =>
           for server_id in server_ids
             @socket.emit 'serverTimeout', server_id if !@server_checkins[server_id]
-          null
+          return
         , 5000
         @server_sweeping = false
+        return
+      return
 
   'core.dbPubSub':
     'dbPubSub': (session_id, channel, data) ->
@@ -81,9 +90,15 @@ module.exports =
                     @db.get @rkey('session_id', session_id, 'user_id'), (err, user_id) =>
                       # send unavailable presence of session to all subscribers
                       @s2s({ type: 'presence', from: @resource(session_id, user_id), session_ids: session_ids.concat([ session_id ]), channel: channel, data: { state: 'unavailable' } })
+                      return
+                    return
+                return
+              return
+            return
+          return
       else
         data_s = @toJSON(data)
-        @db.sadd @rkey('session_id', session_id, 'channels'), channel, (err, res) =>
+        @db.sadd @rkey('session_id', session_id, 'channels'), channel, (err, performed) =>
           @db.sadd @rkey('channel', channel, 'session_ids'), session_id, (err, res) =>
             @db.set @rkey('channel', channel, 'session_id', session_id, 'data'), data_s, (err, res) =>
               if presence
@@ -96,14 +111,22 @@ module.exports =
                     @db.mget user_id_keys, (err, user_ids) =>
                       # send sessions presence for channel to all subscribers
                       @s2s({ type: 'presence', from: @resource(session_id, user_ids[session_ids.indexOf(session_id)]), session_ids: session_ids, channel: channel, data: data })
-                      # send all subscribers presence to session, except self
-                      for sid, i in session_ids
-                        unless sid == session_id
-                          data_i = datas[i]
-                          if data_i
-                            data_i = @parseJSON(data_i)
-                            unless data_i.state  == 'subscribed'
-                              @s2s({ type: 'presence', from: @resource(sid, user_ids[i]), session_ids: [ session_id ], channel: channel, data: data_i })
+                      if performed == 1
+                        # send all subscribers presence to session, except self
+                        for sid, i in session_ids
+                          unless sid == session_id
+                            data_i = datas[i]
+                            if data_i
+                              data_i = @parseJSON(data_i)
+                              unless data_i.state  == 'subscribed'
+                                @s2s({ type: 'presence', from: @resource(sid, user_ids[i]), session_ids: [ session_id ], channel: channel, data: data_i })
+                      return
+                    return
+                  return
+              return
+            return
+          return
+      return
 
   'core.dbPubSubLeaveAll':
     'dbPubSubLeaveAll': (session_id) ->
@@ -111,3 +134,5 @@ module.exports =
       @db.smembers @rkey('session_id', session_id, 'channels'), (err, channels) =>
         for channel in channels
           @emit 'dbPubSub', session_id, channel, { state: 'unavailable' }
+        return
+      return
