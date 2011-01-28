@@ -8,14 +8,17 @@ io = require 'socket.io'
 fs = require 'fs'
 url = require 'url'
 
-clientVersion = '0.0.2'
+clientVersion = '0.0.3'
 
 class Pump extends EventEmitter
   constructor: (options={}) ->
     @host = options.host || '0.0.0.0'
     @port = options.port || 8080
     @cluster_name = options.cluster_name || 'pumpcluster'
-    @server_sweeper = options.server_sweeper || false
+    options.server_sweeper = false if options.server_sweeper == 'false'
+    options.server_sweeper = true if options.server_sweeper == 'true'
+    options.server_sweeper ?= true
+    @server_sweeper = options.server_sweeper
     @static_resource = options.static_resource || 'pump.io'
     @clientVersion = options.clientVersion || clientVersion
     @server_id = Math.random().toString().substr(2)
@@ -208,7 +211,7 @@ class Pump extends EventEmitter
       js: 'text/javascript'
   
     write = (path) =>
-      if req.headers['if-none-match'] == @clientVersion
+      if false && req.headers['if-none-match'] == @clientVersion
         res.writeHead 304
         res.end()
       else

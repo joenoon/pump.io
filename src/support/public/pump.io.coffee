@@ -7,6 +7,9 @@ class Pump
     @reconnect = true
     @secure = false
     @handlers = {}
+    @roster = {}
+    @user_sessions_hash = {}
+    @session_user_hash = {}
     
     for key, val of options
       @[key] = val
@@ -38,6 +41,14 @@ class Pump
         null
     @socket.send obj if obj
     return this
+
+  userIdFromResource: (str) ->
+    parts = str.toString().split("/")
+    if parts.length == 2 then return parts[1] else return ""
+
+  sessionIdFromResource: (str) ->
+    parts = str.toString().split("/")
+    if parts.length == 2 then return parts[0] else return ""
 
   connect: ->
     return if @state in [ 'connected', 'connecting' ]
@@ -96,8 +107,48 @@ class Pump
         data = JSON.parse(data)
       catch err
         data = {}
+    @_rosterHandler(data) if data.type == 'presence'
     @emit 'message', data
   
+  _rosterHandler: (payload) ->
+    return unless payload.from
+    key = if payload.channel then payload.channel else 'global'
+    @roster[key] = {} unless key of @roster
+    session_id = @sessionIdFromResource(payload.from)
+    user_id = @userIdFromResource(payload.from)
+    if session_id && user_id
+      @session_user_hash[session_id] = user_id
+      @user_sessions_hash[user_id] = [] unless user_id of @user_sessions_hash
+      @user_sessions_hash[user_id].push(session_id) unless session_id in @user_sessions_hash[user_id]
+    if session_id && payload.data
+      state = payload.data.state
+      if state == 'unavailable'
+        if session_id of @roster[key]
+          delete @roster[key][session_id]
+          @emit 'presenceChanged', { area: key, state: state, session_id: session_id, user_id: user_id }
+      else
+        unless session_id of @roster[key] && @roster[key][session_id] == state
+          @roster[key][session_id] = state
+          @emit 'presenceChanged', { area: key, state: state, session_id: session_id, user_id: user_id }
+    return
+  
+  userSessionsInArea: (key, user_id) ->
+    session_ids_in_area = {}
+    if key of @roster
+      area = @roster[key]
+      session_ids = @user_sessions_hash[user_id] || []
+      for session_id in session_ids when session_id of area
+        session_ids_in_area[session_id] = area[session_id]
+    return session_ids_in_area
+  
+  rosterCount: (key) ->
+    count = 0
+    if key of @roster
+      area = @roster[key]
+      for own key of area
+        count += 1
+    return count
+    
   doReconnect: ->
     return if @_reconnectInterval
 
