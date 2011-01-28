@@ -29,7 +29,7 @@ class Pump extends EventEmitter
       return
     @server.use connect.bodyDecoder()
     @server.use connect.methodOverride()
-    @server.use connect.errorHandle { dumpExceptions: true, showStack: true }
+    @server.use connect.errorHandler({ dumpExceptions: true, showStack: true })
     @server.use @server.router
     
     @server.post '/s2s', (req, res) =>
