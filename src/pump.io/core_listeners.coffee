@@ -49,8 +49,7 @@ module.exports =
       
   'core.subscriberMessage':
     'subscriberMessage': (channel, message) ->
-      if channel == @cluster_name
-        @emit 'payload', @parseJSON(message)
+      @emit 'payload', @parseJSON(message)
       return
 
   'core.payload.pingpong':
