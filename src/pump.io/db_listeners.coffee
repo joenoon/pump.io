@@ -11,12 +11,14 @@ module.exports =
       console.log "core.dbClientConnect: #{server_id}, #{session_id}"
       @db.sadd @rkey('server_ids'), server_id
       @db.sadd @rkey('server_id', server_id, 'session_ids'), session_id
+      @db.set @rkey('session_id', session_id, 'server_id'), server_id
       return
 
   'core.dbClientDisconnect':
     'dbClientDisconnect': (server_id, session_id) ->
       console.log "core.dbClientDisconnect: #{server_id}, #{session_id}"
       @emit 'dbPubSubLeaveAll', session_id
+      @db.del @rkey('session_id', session_id, 'server_id')
       @db.srem @rkey('server_id', server_id, 'session_ids'), session_id
       @db.get @rkey('session_id', session_id, 'user_id'), (err, user_id) =>
         @db.srem @rkey('user_id', user_id, 'session_ids'), session_id

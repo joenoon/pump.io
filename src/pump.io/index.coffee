@@ -26,12 +26,11 @@ class Pump extends EventEmitter
     @server.use () =>
       @_checkRequest.apply(this, arguments)
     @socket = io.listen @server
-    @socket.users = []
 
     @db = redis.createClient()
     @publisher = redis.createClient()
     @subscriber = redis.createClient()
-    @subscriber.subscribe @cluster_name
+    @subscriber.subscribe @rkey(@cluster_name, 'server', @server_id)
     @__bind_listeners()
     if @server_sweeper
       @__server_sweeper_interval = setInterval (() => @emit('serverSweep')), 10000
@@ -62,9 +61,6 @@ class Pump extends EventEmitter
     arr.unshift @cluster_name
     return "#{arr.join(":")}"
     
-  internalChannel: (channel) ->
-    return "#{@cluster_name}#{channel}"
-    
   s2s: (obj) ->
     if typeof obj == 'string'
       obj = JSON.parse(obj)
@@ -80,15 +76,32 @@ class Pump extends EventEmitter
         obj.user_ids = []
         obj.session_ids = session_ids
         @s2s obj
+        return
     else if obj.channel && obj.session_ids.length == 0
       @db.smembers @rkey('channel', obj.channel, 'session_ids'), (err, session_ids) =>
         if session_ids.length > 0
           obj.session_ids = session_ids
           @s2s obj
-    else if obj.server_ids.length > 0 || obj.session_ids.length > 0
-      @publisher.publish @cluster_name, @toJSON(obj)
+        return
+    else if obj.server_ids.length > 0
+      for server_id in obj.server_ids
+        @publisher.publish @rkey(@cluster_name, 'server', server_id), @toJSON(obj)
+    else if obj.session_ids.length > 0
+      session_server_id_keys = for session_id in obj.session_ids
+        @rkey('session_id', session_id, 'server_id')
+      @db.mget session_server_id_keys, (err, session_server_ids) =>
+        mapper = {}
+        for server_id, i in session_server_ids
+          if server_id
+            mapper[server_id] ||= []
+            mapper[server_id].push obj.session_ids[i]
+        for server_id, session_ids of mapper
+          obj.session_ids = session_ids
+          @publisher.publish @rkey(@cluster_name, 'server', server_id), @toJSON(obj)
+        return
     else
       console.log "s2s not sent because no recipients: #{sys.inspect(obj)}"
+    return
   
   toJSON: (obj) ->
     try
