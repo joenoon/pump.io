@@ -1,5 +1,6 @@
 sys = require 'sys'
 express = require 'express'
+connect = require 'connect'
 EventEmitter = require('events').EventEmitter
 redis = require 'redis'
 # redis.debug_mode = true
@@ -25,6 +26,22 @@ class Pump extends EventEmitter
     @server = express.createServer()
     @server.use () =>
       @_checkRequest.apply(this, arguments)
+      return
+    @server.use connect.bodyDecoder()
+    @server.use connect.methodOverride()
+    @server.use connect.errorHandle { dumpExceptions: true, showStack: true }
+    @server.use @server.router
+    
+    @server.post '/s2s', (req, res) =>
+      if @_checkAllowedRequest(res)
+        res.writeHead 200, {'Content-Type': 'application/json'}
+        res.end JSON.stringify({ success: true })
+        @s2s(req.body)
+      else
+        res.writeHead 403, {'Content-Type': 'application/json'}
+        res.end JSON.stringify({ success: false })
+      return
+      
     @socket = io.listen @server
 
     @db = redis.createClient()
@@ -172,7 +189,11 @@ class Pump extends EventEmitter
       @emit 'subscriberUnsubscribed', channel, subscription_count
     
     return
-      
+  
+  # override to block access to POST /s2s in custom ways
+  _checkAllowedRequest: (req) ->
+    return true
+    
   _checkRequest: (req, res, next) ->
     path = url.parse(req.url).pathname
     if path && path.indexOf('/' + @static_resource) == 0
