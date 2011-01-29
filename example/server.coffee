@@ -11,6 +11,9 @@ pump.server.use express.staticProvider("#{__dirname}/public")
 pump.useAll(Pump.core_listeners)
 pump.useAll(Pump.db_listeners)
 pump.useAll(Pump.stub_listeners)    # comment this one out and add your own instead
+pump.use 'serversSweeped', 'serversSweeped', ->
+  @socket.broadcast { type: 'serversSweeped', data: {} }
+  return
 
 pump.server.listen 3001
 

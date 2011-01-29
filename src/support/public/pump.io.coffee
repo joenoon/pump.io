@@ -53,6 +53,7 @@ class Pump
   connect: ->
     return if @state in [ 'connected', 'connecting' ]
     @socket.connect()
+    return
     
   subscribe: (channel, state='available') ->
     @send
@@ -60,13 +61,14 @@ class Pump
       channel: channel
       data:
         state: state
+    return
   
   unsubscribe: (channel) ->
     @subscribe channel, 'unavailable'
+    return
 
   on: (name, fn) ->
     return unless name && fn
-    name = "pump#{name}"
     @handlers[name] = [] unless name of @handlers
     @handlers[name].push fn
     return this
@@ -76,7 +78,6 @@ class Pump
       arg
     name = args.shift()
     return unless name
-    name = "pump#{name}"
     if name of @handlers
       events = @handlers[name].concat()
       for fn in events
@@ -85,7 +86,6 @@ class Pump
 
   removeEvent: (name, fn) ->
     return unless name
-    name = "pump#{name}"
     if name of @handlers
       for fn, i in @handlers[name]
         @handlers[name].splice(i, 1) if @handlers[name][i] == fn
@@ -94,11 +94,13 @@ class Pump
   onConnect: ->
     @sessionId = @socket.transport.sessionid
     @emit 'connect'
+    return
 
   onDisconnect: ->
     @sessionId = null
     @emit 'disconnect'
     @doReconnect() if @reconnect
+    return
   
   onMessage: (data) ->
     data ||= {}
@@ -107,8 +109,10 @@ class Pump
         data = JSON.parse(data)
       catch err
         data = {}
-    @_rosterHandler(data) if data.type == 'presence'
-    @emit 'message', data
+    if data.type
+      @_rosterHandler(data) if data.type == 'presence'
+      @emit data.type, data
+    return
   
   _rosterHandler: (payload) ->
     return unless payload.from
@@ -116,7 +120,7 @@ class Pump
     @roster[key] = {} unless key of @roster
     session_id = @sessionIdFromResource(payload.from)
     user_id = @userIdFromResource(payload.from)
-    sendable = null
+    changed = false
     if session_id && user_id
       @session_user_hash[session_id] = user_id
       @user_sessions_hash[user_id] = [] unless user_id of @user_sessions_hash
@@ -130,15 +134,15 @@ class Pump
           else
             if key of @roster
               @roster[key] = {}
-          sendable = true
+          changed = true
         else
           if session_id of @roster[key]
             delete @roster[key][session_id]
-            sendable = true
+            changed = true
       else
         @roster[key][session_id] = state
-        sendable = true
-    if sendable
+        changed = true
+    if changed
       @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
     return
   
@@ -176,5 +180,6 @@ class Pump
         @connect()
       
     @_reconnectInterval = setInterval reconnect, 3000
+    return
 
 this.Pump = Pump

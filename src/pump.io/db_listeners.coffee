@@ -68,6 +68,7 @@ module.exports =
         setTimeout () =>
           for server_id in server_ids
             @socket.emit 'serverTimeout', server_id if !@server_checkins[server_id]
+          @emit 'serversSweeped'
           return
         , 5000
         @server_sweeping = false

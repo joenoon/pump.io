@@ -4,88 +4,11 @@
   <script type="text/javascript" src="/socket.io/socket.io.js"></script>
   <script type="text/javascript" src="/pump.io/pump.io.js"></script>
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.js"></script>
+  <script type="text/javascript" src="/test.js"></script>
 </head>
 <body>
+  <div id="presence"></div>
+  <hr/>
   <div id="content"></div>
-  <script type="text/javascript">
-    var prepend = function (str) {
-      $(function () {
-        $('#content').prepend($('<div style="padding:10px 0px"></div>').html((new Date()).toString() + ' - ' + str));
-      });
-    };
-    var checkCount = function (pump, channel, expected_count) {
-      var got_count = pump.rosterCount(channel);
-      if (got_count === expected_count) {
-        prepend('OK!');
-      } else {
-        prepend('FAIL!: '+k+', '+channel+' expected: '+expected_count+', got: '+got_count);
-      }
-    };
-    var pumps = {
-      pump1: { user_id: 1, channels: [ 'chan1' ], expects: { chan1: 5 } },
-      pump2: { user_id: 2, channels: [ 'chan1', 'chan2' ], expects: { chan1: 5, chan2: 4 } },
-      pump3: { user_id: 3, channels: [ 'chan1', 'chan2', 'chan3' ], expects: { chan1: 5, chan2: 4, chan3: 3 } },
-      pump4: { user_id: 2, channels: [ 'chan1', 'chan2', 'chan3', 'chan4' ], expects: { chan1: 5, chan2: 4, chan3: 3, chan4: 2 } },
-      pump5: { user_id: 1, channels: [ 'chan1', 'chan2', 'chan3', 'chan4', 'chan5' ], expects: { chan1: 5, chan2: 4, chan3: 3, chan4: 2, chan5: 1 } }
-    };
-    for (var k in pumps) {
-      (function () {
-        var d = pumps[k];
-        d.pump = new Pump({ port: 3001});
-        var p = d.pump;
-        p.on('connect', function () {
-          prepend(p.socket.transport.sessionid+" Connected!");
-          p.send({ type: 'authenticate', data: { token: 'ok', user_id: d.user_id } });
-        });
-        p.on('message', function (payload) {
-          if (payload.type == 'authenticated' && payload.data.result) {
-            prepend(p.socket.transport.sessionid+" Authenticated!");
-            d.channels.forEach(function (channel) {
-              p.subscribe(channel);
-            });
-          } else if (payload.type == 'presence' && p.sessionIdFromResource(payload.from) == p.socket.transport.sessionid) {
-            prepend(p.socket.transport.sessionid+" joined "+payload.channel);
-          }
-        });
-        p.on('reconnecting', function () {
-          prepend(p.socket.transport.sessionid+" Reconnecting...");
-        });
-        p.on('disconnect', function() {
-          prepend(p.socket.transport.sessionid+" Disconnected!");
-        });
-        p.connect();
-      })();
-    }
-    setTimeout(function () {
-      prepend('Starting tests');
-      for (k in pumps) {
-        (function () {
-          var d = pumps[k];
-          var p = d.pump;
-          for (var channel in d.expects) {
-            var expected_count = d.expects[channel];
-            checkCount(p, channel, expected_count);
-          }
-        })();
-      }
-      setTimeout(function () {
-        pumps.pump4.pump.reconnect = false
-        pumps.pump4.pump.socket.disconnect();
-        setTimeout(function () {
-          var p = pumps.pump5.pump;
-          checkCount(p, 'chan1', 4);
-          checkCount(p, 'chan2', 3);
-          checkCount(p, 'chan3', 2);
-          checkCount(p, 'chan4', 1);
-          checkCount(p, 'chan5', 1);
-          setTimeout(function () {
-            prepend('All done!');
-          }, 5000);
-        }, 5000);
-      }, 5000);
-      
-    }, 30000);
-    
-  </script>
 </body>
 </html>

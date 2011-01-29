@@ -11,6 +11,12 @@
   pump.useAll(Pump.core_listeners);
   pump.useAll(Pump.db_listeners);
   pump.useAll(Pump.stub_listeners);
+  pump.use('serversSweeped', 'serversSweeped', function() {
+    this.socket.broadcast({
+      type: 'serversSweeped',
+      data: {}
+    });
+  });
   pump.server.listen(3001);
   module.exports = pump.server;
 }).call(this);
