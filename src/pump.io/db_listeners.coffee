@@ -84,7 +84,7 @@ module.exports =
         @db.srem @rkey('session_id', session_id, 'channels'), channel, (err, res) =>
           @db.srem @rkey('channel', channel, 'session_ids'), session_id, (err, res) =>
             @db.get @rkey('channel', channel, 'session_id', session_id, 'data'), (err, current_data) =>
-              current_data = @parseJSON(current_data)
+              current_data = @parseJSON(current_data) || {}
               presence = if current_data.state == 'subscribed' then false else true
               @db.del @rkey('channel', channel, 'session_id', session_id, 'data'), (err, res) =>
                 if presence
