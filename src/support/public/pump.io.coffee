@@ -116,6 +116,7 @@ class Pump
     @roster[key] = {} unless key of @roster
     session_id = @sessionIdFromResource(payload.from)
     user_id = @userIdFromResource(payload.from)
+    sendable = null
     if session_id && user_id
       @session_user_hash[session_id] = user_id
       @user_sessions_hash[user_id] = [] unless user_id of @user_sessions_hash
@@ -123,12 +124,22 @@ class Pump
     if session_id && payload.data
       state = payload.data.state
       if state == 'unavailable'
-        if session_id of @roster[key]
-          delete @roster[key][session_id]
-          @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
+        if session_id == @sessionId
+          if key == 'global'
+            @roster = {}
+          else
+            if key of @roster
+              @roster[key] = {}
+          sendable = true
+        else
+          if session_id of @roster[key]
+            delete @roster[key][session_id]
+            sendable = true
       else
         @roster[key][session_id] = state
-        @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
+        sendable = true
+    if sendable
+      @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
     return
   
   userSessionsInArea: (key, user_id) ->
