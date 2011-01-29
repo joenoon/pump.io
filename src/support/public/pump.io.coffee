@@ -127,9 +127,8 @@ class Pump
           delete @roster[key][session_id]
           @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
       else
-        unless session_id of @roster[key] && @roster[key][session_id] == state
-          @roster[key][session_id] = state
-          @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
+        @roster[key][session_id] = state
+        @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
     return
   
   userSessionsInArea: (key, user_id) ->
