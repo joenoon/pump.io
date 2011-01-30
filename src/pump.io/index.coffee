@@ -54,6 +54,9 @@ class Pump extends EventEmitter
     @__bind_listeners()
     if @server_sweeper
       @__server_sweeper_interval = setInterval (() => @emit('serverSweep')), 10000
+  
+  listen: (callback) ->
+    @server.listen(@port, @host, callback)
     
   use: (unique_name, type, fn) ->
     that = this
