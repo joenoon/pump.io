@@ -14,6 +14,8 @@ class Pump extends EventEmitter
   constructor: (options={}) ->
     @host = options.host || '0.0.0.0'
     @port = options.port || 8080
+    @redis_host = options.redis_host || '127.0.0.1'
+    @redis_port = options.redis_port || 6379
     @cluster_name = options.cluster_name || 'pumpcluster'
     options.server_sweeper = false if options.server_sweeper == 'false'
     options.server_sweeper = true if options.server_sweeper == 'true'
@@ -45,19 +47,19 @@ class Pump extends EventEmitter
         res.end JSON.stringify({ success: false })
       return
       
-    @socket = io.listen @server
-
-    @db = redis.createClient()
-    @publisher = redis.createClient()
-    @subscriber = redis.createClient()
-    @subscriber.subscribe @rkey(@cluster_name, 'server', @server_id)
-    @__bind_listeners()
-    if @server_sweeper
-      @__server_sweeper_interval = setInterval (() => @emit('serverSweep')), 10000
+    @db = redis.createClient(@redis_port, @redis_host)
+    @publisher = redis.createClient(@redis_port, @redis_host)
+    @subscriber = redis.createClient(@redis_port, @redis_host)
   
   listen: (callback) ->
     @server.listen(@port, @host, callback)
-    
+    @subscriber.subscribe @rkey(@cluster_name, 'server', @server_id)
+    @socket = io.listen @server
+    @__bind_listeners()
+    if @server_sweeper
+      @__server_sweeper_interval = setInterval (() => @emit('serverSweep')), 10000
+    return this
+
   use: (unique_name, type, fn) ->
     that = this
     @__listeners[unique_name] = () ->
