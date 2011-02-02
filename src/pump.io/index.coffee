@@ -110,6 +110,7 @@ class Pump extends EventEmitter
         return
     else if obj.server_ids.length > 0
       for server_id in obj.server_ids
+        obj.ts = new Date().getTime()
         @publisher.publish @rkey(@cluster_name, 'server', server_id), @toJSON(obj)
     else if obj.session_ids.length > 0
       session_server_id_keys = for session_id in obj.session_ids
@@ -122,6 +123,7 @@ class Pump extends EventEmitter
             mapper[server_id].push obj.session_ids[i]
         for server_id, session_ids of mapper
           obj.session_ids = session_ids
+          obj.ts = new Date().getTime()
           @publisher.publish @rkey(@cluster_name, 'server', server_id), @toJSON(obj)
         return
     else

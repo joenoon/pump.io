@@ -111,6 +111,7 @@ class Pump
         data = {}
     if data.type
       @_rosterHandler(data) if data.type == 'presence'
+      @_timeHandler(data) if data.ts
       @emit data.type, data
     return
   
@@ -146,6 +147,16 @@ class Pump
       @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
     return
   
+  _timeHandler: (payload) ->
+    client_time = new Date().getTime()            # dec 1               # dec2
+    server_time = payload.ts                      # dec 2               # dec1
+    @time_delta = client_time - server_time       # -1 day              # +1 day
+    return
+  
+  adjustedEpoch: (epoch_mil) ->
+    time_delta = @time_delta || 0   # some epoch from server for dec 2: dec 2 - 1 day = dec 1 on client
+    return epoch_mil + time_delta   # some epoch from server for dec 1: dec 1 + 1 day = dec 2 on client
+    
   userSessionsInArea: (key, user_id) ->
     session_ids_in_area = {}
     if key of @roster
