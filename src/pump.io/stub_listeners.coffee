@@ -4,7 +4,7 @@ module.exports =
 
   'stub.authenticate':
     'authenticate': (message, client) ->
-      console.log "stub.authenticate: #{sys.inspect(message)}, #{client.sessionId}"
+      @log "stub.authenticate: #{sys.inspect(message)}, #{client.sessionId}"
       @emit 'authenticationSuccess', client, message.data.user_id
       # @emit 'authenticationFailed', client
       return

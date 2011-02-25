@@ -1,3 +1,6 @@
+path = require 'path'
+require.paths.unshift path.join(__dirname, "..", "..", "app", "realtime", "node_modules")
+
 sys = require 'sys'
 express = require 'express'
 Pump = require '../lib/pump.io'
@@ -5,6 +8,8 @@ Pump = require '../lib/pump.io'
 pump = Pump.create
   cluster_name: 'testcluster'
   server_sweeper: true
+  port: 3001
+  host: '0.0.0.0'
 
 pump.server.use express.staticProvider("#{__dirname}/public")
 
@@ -15,9 +20,8 @@ pump.use 'serversSweeped', 'serversSweeped', ->
   @socket.broadcast { type: 'serversSweeped', data: {} }
   return
 
-pump.server.listen 3001
+pump.listen()
 
-module.exports = pump.server
 
 # repl = require("repl").start()
 # repl.context.sys = require('sys')

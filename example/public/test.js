@@ -6,6 +6,8 @@
     }
     return -1;
   }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  window.WEB_SOCKET_DEBUG = true;
+  window.WEB_SOCKET_SWF_LOCATION = 'http://www.realtime.dev:3001/socket.io/lib/vendor/web-socket-js/WebSocketMain.swf';
   TestCase = (function() {
     function TestCase() {
       this.type = null;
@@ -85,8 +87,7 @@
     return TestCase;
   })();
   $(function() {
-    var test;
-    test = new TestCase;
-    return test.start();
+    window.test = new TestCase;
+    return window.test.start();
   });
 }).call(this);

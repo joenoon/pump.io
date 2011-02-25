@@ -1,3 +1,5 @@
+window.WEB_SOCKET_DEBUG = true
+window.WEB_SOCKET_SWF_LOCATION = 'http://www.realtime.dev:3001/socket.io/lib/vendor/web-socket-js/WebSocketMain.swf';
 # Assumes youve set up www.realtime.dev in hosts file to test cross-site
 class TestCase
   constructor: ->
@@ -46,5 +48,6 @@ class TestCase
     @pump.connect()
     
 $ ->
-  test = new TestCase
-  test.start()
+  window.test = new TestCase
+  window.test.start()
+  

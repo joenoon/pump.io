@@ -8,15 +8,14 @@ module.exports =
 
   'core.dbClientConnect':
     'dbClientConnect': (server_id, session_id) ->
-      console.log "core.dbClientConnect: #{server_id}, #{session_id}"
-      @db.sadd @rkey('server_ids'), server_id
+      @log "core.dbClientConnect: #{server_id}, #{session_id}"
       @db.sadd @rkey('server_id', server_id, 'session_ids'), session_id
       @db.set @rkey('session_id', session_id, 'server_id'), server_id
       return
 
   'core.dbClientDisconnect':
     'dbClientDisconnect': (server_id, session_id) ->
-      console.log "core.dbClientDisconnect: #{server_id}, #{session_id}"
+      @log "core.dbClientDisconnect: #{server_id}, #{session_id}"
       @emit 'dbPubSubLeaveAll', session_id
       @db.del @rkey('session_id', session_id, 'server_id')
       @db.srem @rkey('server_id', server_id, 'session_ids'), session_id
@@ -28,20 +27,20 @@ module.exports =
   
   'core.dbAuthenticated':
     'dbAuthenticated': (session_id, user_id) ->
-      console.log "core.dbAuthenticated: #{session_id}, #{user_id}"
+      @log "core.dbAuthenticated: #{session_id}, #{user_id}"
       @db.set @rkey('session_id', session_id, 'user_id'), user_id
       @db.sadd @rkey('user_id', user_id, 'session_ids'), session_id
       return
 
   'core.dbServerOnline':
     'dbServerOnline': (server_id) ->
-      console.log "core.dbServerOnline: #{server_id}"
+      @log "core.dbServerOnline: #{server_id}"
       @db.sadd @rkey('server_ids'), server_id
       return
 
   'core.dbServerOffline':
     'dbServerOffline': (server_id) ->
-      console.log "core.dbServerOffline: #{server_id}"
+      @log "core.dbServerOffline: #{server_id}"
       @db.srem @rkey('server_ids'), server_id
       @db.smembers @rkey('server_id', server_id, 'session_ids'), (err, session_ids) =>
         for session_id in session_ids
@@ -53,7 +52,7 @@ module.exports =
   'core.dbServerSweep':
     'dbServerSweep': ->
       return if @server_sweeping
-      console.log "core.dbServerSweep"
+      @log "core.dbServerSweep"
       @server_sweeping = true
       @db.smembers @rkey('server_ids'), (err, server_ids) =>
         # set checkin template
@@ -77,7 +76,7 @@ module.exports =
 
   'core.dbPubSub':
     'dbPubSub': (session_id, channel, data) ->
-      console.log "core.dbPubSub: #{session_id}, #{channel}, state: #{data.state}"
+      @log "core.dbPubSub: #{session_id}, #{channel}, state: #{data.state}"
       data.state ||= 'available'
       state = data.state
       presence = if state == 'subscribed' then false else true
@@ -133,7 +132,7 @@ module.exports =
 
   'core.dbPubSubLeaveAll':
     'dbPubSubLeaveAll': (session_id) ->
-      console.log "core.dbPubSubLeaveAll: #{session_id}"
+      @log "core.dbPubSubLeaveAll: #{session_id}"
       @db.smembers @rkey('session_id', session_id, 'channels'), (err, channels) =>
         for channel in channels
           @emit 'dbPubSub', session_id, channel, { state: 'unavailable' }

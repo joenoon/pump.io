@@ -27,8 +27,11 @@ class Pump extends EventEmitter
     @server_checkins = {}
     @__listeners = {}
     @_clientFiles = {}
+    
+    @log = sys.log
 
     @server = express.createServer()
+    
     @server.use () =>
       @_checkRequest.apply(this, arguments)
       return
@@ -46,25 +49,26 @@ class Pump extends EventEmitter
         res.writeHead 403, {'Content-Type': 'application/json'}
         res.end JSON.stringify({ success: false })
       return
-      
-    @db = redis.createClient(@redis_port, @redis_host)
-    @publisher = redis.createClient(@redis_port, @redis_host)
-    @subscriber = redis.createClient(@redis_port, @redis_host)
+
   
   listen: (callback) ->
     @server.listen(@port, @host, callback)
-    @subscriber.subscribe @rkey(@cluster_name, 'server', @server_id)
     @socket = io.listen @server
+    @db = redis.createClient(@redis_port, @redis_host)
+    @publisher = redis.createClient(@redis_port, @redis_host)
+    @subscriber = redis.createClient(@redis_port, @redis_host)
+    @subscriber.subscribe @rkey(@cluster_name, 'server', @server_id)
     @__bind_listeners()
     if @server_sweeper
       @__server_sweeper_interval = setInterval (() => @emit('serverSweep')), 10000
-    return this
-
+    @emit 'serverOnline', @server_id
+    return
+    
   use: (unique_name, type, fn) ->
     that = this
     @__listeners[unique_name] = () ->
       return fn.apply(that, arguments)
-    console.log "using listener on #{type}: #{unique_name}"
+    @log "using listener on #{type}: #{unique_name}"
     @on type, @__listeners[unique_name]
     return
   
@@ -75,11 +79,14 @@ class Pump extends EventEmitter
     return
     
   unuse: (unique_name, type) ->
-    console.log "un-using listener on #{type}: #{unique_name}"
+    @log "un-using listener on #{type}: #{unique_name}"
     @removeListener type, @__listeners[unique_name]
     delete @__listeners[unique_name]
     return
   
+  connectUse: (fn) ->
+    fn(connect)
+    
   rkey: () ->
     arr = for arg in arguments
       arg
@@ -127,7 +134,7 @@ class Pump extends EventEmitter
           @publisher.publish @rkey(@cluster_name, 'server', server_id), @toJSON(obj)
         return
     else
-      console.log "s2s not sent because no recipients: #{sys.inspect(obj)}"
+      @log "s2s not sent because no recipients: #{sys.inspect(obj)}"
     return
   
   toJSON: (obj) ->
@@ -162,18 +169,6 @@ class Pump extends EventEmitter
     uid = user_id ? ''
     return "#{sid}/#{uid}"
     
-  graceful_exit: ->
-    console.log 'graceful shutdown...'
-    process.nextTick =>
-      if @__server_sweeper_interval
-        clearInterval(@__server_sweeper_interval)
-      @server.close()
-      @emit 'disconnectAll'
-      @subscriber.shutting_down = true
-      @subscriber.unsubscribe @cluster_name
-      @subscriber.quit()
-    true
-      
   __bind_listeners: ->
 
     @socket.on 'clientMessage', (message, client) =>
