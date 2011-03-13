@@ -1,6 +1,6 @@
 { "name" : "pump.io"
 , "description" : "Scalable redis-backed, user/session aware, pubsub with optional presence extensions built on top of socket.io"
-, "version" : "0.0.5"
+, "version" : "0.0.6"
 , "author" : "joenoon"
 , "licenses" :
   [ { "type" : "MIT"
