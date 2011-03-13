@@ -5,13 +5,13 @@ module.exports =
   'stub.authenticate':
     'authenticate': (message, client) ->
       @log "stub.authenticate: #{sys.inspect(message)}, #{client.sessionId}"
-      @emit 'authenticationSuccess', client, message.data.user_id
-      # @emit 'authenticationFailed', client
+      @emit 'authenticationSuccess', message, client
+      # @emit 'authenticationFailed', message, client
       return
 
   'stub.pubsubCheck':
     'pubsubCheck': (message, client) ->
-      @emit 'pubsub', client, message.channel, message.data
+      @emit 'pubsub', client, message.channel, message.data, message.rid
       # special states:
       # unavailable : removes client from channel.  if they were state 'pubsub', no presence sent out
       # subscribed : subscribes a client to channel.  no presence

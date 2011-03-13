@@ -8,7 +8,10 @@ io = require 'socket.io'
 fs = require 'fs'
 url = require 'url'
 
-clientVersion = '0.0.3'
+clientVersion = '0.0.4'
+
+random_number_between = (low, high) ->
+  Math.floor(Math.random() * (high - low + 1)) + low
 
 class Pump extends EventEmitter
   constructor: (options={}) ->
@@ -17,16 +20,14 @@ class Pump extends EventEmitter
     @redis_host = options.redis_host || '127.0.0.1'
     @redis_port = options.redis_port || 6379
     @cluster_name = options.cluster_name || 'pumpcluster'
-    options.server_sweeper = false if options.server_sweeper == 'false'
-    options.server_sweeper = true if options.server_sweeper == 'true'
-    options.server_sweeper ?= true
-    @server_sweeper = options.server_sweeper
     @static_resource = options.static_resource || 'pump.io'
     @clientVersion = options.clientVersion || clientVersion
     @server_id = Math.random().toString().substr(2)
     @server_checkins = {}
     @__listeners = {}
     @_clientFiles = {}
+    @__last_sweeped_at = 0
+    @server_sweeper = false
     
     @log = sys.log
 
@@ -59,8 +60,12 @@ class Pump extends EventEmitter
     @subscriber = redis.createClient(@redis_port, @redis_host)
     @subscriber.subscribe @rkey(@cluster_name, 'server', @server_id)
     @__bind_listeners()
-    if @server_sweeper
+    # start kicking off server sweeper checks between 10 and 120 seconds from now
+    setTimeout () =>
       @__server_sweeper_interval = setInterval (() => @emit('serverSweep')), 10000
+      @__server_sweeper_primary_check_internal = setInterval (() => @emit('serverSweepPrimaryCheck')), 60000
+      return
+    , random_number_between(10, 120) * 1000
     @emit 'serverOnline', @server_id
     return
     
@@ -183,9 +188,8 @@ class Pump extends EventEmitter
     @socket.on 'disconnectAll', =>
       @emit 'disconnectAll'
       
-    if @server_sweeper
-      @socket.on 'serverTimeout', (server_id) =>
-        @emit 'serverTimeout', server_id
+    @socket.on 'serverTimeout', (server_id) =>
+      @emit 'serverTimeout', server_id
 
     @subscriber.on 'message', (channel, message) =>
       @emit 'subscriberMessage', channel, message
@@ -243,9 +247,6 @@ class Pump extends EventEmitter
           write path
       return true
     return false
-
-  @create: (cluster_name, port, host, server_sweeper) ->
-    return (new Pump(cluster_name, port, host, server_sweeper))
 
 Pump.core_listeners = require './core_listeners.js'
 Pump.db_listeners = require './db_listeners.js'

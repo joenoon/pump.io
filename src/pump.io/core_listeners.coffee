@@ -30,21 +30,26 @@ module.exports =
         @emit 'authenticate', message, client
       else if message.type == 'presence' && message.channel
         @emit 'pubsubCheck', message, client
+      else if message.type == 'ping'
+        message.type = 'pong'
+        client.send message
       return
 
   'core.authenticationSuccess':
-    'authenticationSuccess': (client, user_id) ->
-      @log "core.authenticationSuccess: #{client.sessionId}, #{user_id}"
-      client.user_id = user_id
+    'authenticationSuccess': (message, client) ->
+      @log "core.authenticationSuccess: #{client.sessionId}, #{message.data.user_id}"
+      client.user_id = message.data.user_id
       client.authenticated = true
-      client.send({ type: 'authenticated', data: { result: true, user_id: client.user_id } })
+      message.type = 'authenticated'
+      client.send message
       @emit 'dbAuthenticated', client.sessionId, client.user_id
       return
 
   'core.authenticationFailed':
-    'authenticationFailed': (client) ->
-      @log "core.authenticationSuccess: #{client.sessionId}"
-      client.send({ type: 'authenticated', data: { result: false } })
+    'authenticationFailed': (message, client) ->
+      @log "core.authenticationFailed: #{client.sessionId}"
+      message.type = 'authentication_failed'
+      client.send message
       return
       
   'core.subscriberMessage':
@@ -56,12 +61,12 @@ module.exports =
     'payload': (payload) ->
       if @server_id in payload.server_ids && payload.type in [ 'ping', 'pong' ]
         if payload.type == 'ping'
-          @log "ping on #{@server_id}"
+          @__last_sweeped_at = new Date().getTime()
+          @server_sweeper = false if payload.origin_server_id != @server_id
           @s2s
             server_ids: [ payload.origin_server_id ]
             type: 'pong'
         else if payload.type == 'pong'
-          @log "pong on #{@server_id} from #{payload.origin_server_id}"
           @server_checkins[payload.origin_server_id] = true
       return
 
@@ -104,8 +109,14 @@ module.exports =
     'serverSweep': ->
       @emit 'dbServerSweep'
       return
+  
+  'core.serverSweepPrimaryCheck':
+    'serverSweepPrimaryCheck': ->
+      if new Date().getTime() - @__last_sweeped_at > 60000
+        @server_sweeper = true
+      return
       
   'core.pubsub':
-    'pubsub': (client, channel, data) ->
-      @emit 'dbPubSub', client.sessionId, channel, data
+    'pubsub': (client, channel, data, rid) ->
+      @emit 'dbPubSub', client.sessionId, channel, data, rid
       return

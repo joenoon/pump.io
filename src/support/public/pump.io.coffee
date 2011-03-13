@@ -1,3 +1,5 @@
+rid_counter = parseInt(Math.random().toString().substr(2, 6), 10)
+
 class Pump
   constructor: (options) ->
     options = options ? {}
@@ -26,20 +28,28 @@ class Pump
     @socket.on 'connect', @proxy(@onConnect)
     @socket.on 'message', @proxy(@onMessage)
     @socket.on 'disconnect', @proxy(@onDisconnect)
-
+  
+  rid: () ->
+    return rid_counter++
+    
   proxy: (fn) ->
     that = this
     return () ->
       return fn.apply(that, arguments)
 
-  send: (obj) ->
-    obj ||= {}
-    unless typeof obj == 'string'
-      try
-        obj = JSON.stringify(obj)
-      catch err
-        null
-    @socket.send obj if obj
+  send: (obj={}, callback=null) ->
+    unless typeof obj == 'object'
+      throw new Error 'send requires an object'
+    return if !obj.type
+    if typeof callback == 'function'
+      rid = @rid()
+      obj.rid = rid
+      @on "rid_#{rid}", () =>
+        @removeAllEvents "rid_#{rid}"
+        callback.apply this, arguments
+        return
+    str = JSON.stringify(obj)
+    @socket.send str
     return this
 
   userIdFromResource: (str) ->
@@ -51,7 +61,8 @@ class Pump
     if parts.length == 2 then return parts[0] else return ""
 
   connect: ->
-    return if @state in [ 'connected', 'connecting' ]
+    return if @state in [ 'confirmed', 'connected', 'connecting' ]
+    @state = 'connecting'
     @socket.connect()
     return
     
@@ -90,14 +101,26 @@ class Pump
       for fn, i in @handlers[name]
         @handlers[name].splice(i, 1) if @handlers[name][i] == fn
     return this
-
+  
+  removeAllEvents: (name) ->
+    return unless name
+      delete @handlers[name]
+    return this
+    
   onConnect: ->
     @sessionId = @socket.transport.sessionid
+    @state = 'connected'
     @emit 'connect'
+    @send { type: 'ping' }, (payload) =>
+      if payload.type == 'pong'
+        @state = 'confirmed'
+        @emit 'connection_confirmed'
+      return
     return
 
   onDisconnect: ->
     @sessionId = null
+    @state = 'disconnected'
     @emit 'disconnect'
     @doReconnect() if @reconnect
     return
@@ -110,6 +133,7 @@ class Pump
       catch err
         data = {}
     if data.type
+      @_ridHandler(data) if data.rid
       @_rosterHandler(data) if data.type == 'presence'
       @_timeHandler(data) if data.ts
       @emit data.type, data
@@ -151,6 +175,10 @@ class Pump
     client_time = new Date().getTime()            # dec 1               # dec2
     server_time = payload.ts                      # dec 2               # dec1
     @time_delta = client_time - server_time       # -1 day              # +1 day
+    return
+  
+  _ridHandler: (payload) ->
+    @emit "rid_#{payload.rid}", payload
     return
   
   adjustedEpoch: (epoch_mil) ->
