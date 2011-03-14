@@ -115,7 +115,9 @@ module.exports =
                   user_id_keys = for sid in session_ids
                     @rkey('session_id', sid, 'user_id')
                   @db.mget data_keys, (err, datas) =>
+                    datas ||= []
                     @db.mget user_id_keys, (err, user_ids) =>
+                      user_ids ||= []
                       # send sessions presence for channel to all subscribers
                       session_ids_except_me = for sid in session_ids when sid != session_id
                         sid

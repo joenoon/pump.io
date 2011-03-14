@@ -128,6 +128,7 @@ class Pump extends EventEmitter
       session_server_id_keys = for session_id in obj.session_ids
         @rkey('session_id', session_id, 'server_id')
       @db.mget session_server_id_keys, (err, session_server_ids) =>
+        session_server_ids ||= []
         mapper = {}
         for server_id, i in session_server_ids
           if server_id
