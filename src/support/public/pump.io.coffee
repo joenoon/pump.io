@@ -6,14 +6,14 @@ class Pump
     @host = window.location.hostname
     @port = 8080
     @rememberTransport = false
-    @reconnect = true
     @secure = false
     @handlers = {}
     @roster = {}
+    @mypresence = {}
     @user_sessions_hash = {}
     @session_user_hash = {}
     
-    for key, val of options
+    for own key, val of options
       @[key] = val
     
     socket_options =
@@ -28,6 +28,17 @@ class Pump
     @socket.on 'connect', @proxy(@onConnect)
     @socket.on 'message', @proxy(@onMessage)
     @socket.on 'disconnect', @proxy(@onDisconnect)
+    
+    if @debug
+      @socket.on 'connect', () -> (console.log 'DEBUG: connect')
+      @socket.on 'connecting', (transport_type) -> (console.log 'DEBUG: connecting', transport_type)
+      @socket.on 'connect_failed', () -> (console.log 'DEBUG: connect_failed')
+      @socket.on 'message', (message) -> (console.log 'DEBUG: message', message)
+      @socket.on 'close', () -> (console.log 'DEBUG: close')
+      @socket.on 'disconnect', () -> (console.log 'DEBUG: disconnect')
+      @socket.on 'reconnect', (transport_type, reconnectionAttempts) -> (console.log 'DEBUG: reconnect', transport_type, reconnectionAttempts)
+      @socket.on 'reconnecting', (reconnectionDelay, reconnectionAttempts) -> (console.log 'DEBUG: reconnecting', reconnectionDelay, reconnectionAttempts)
+      @socket.on 'reconnect_failed', () -> (console.log 'DEBUG: reconnect_failed')
   
   rid: () ->
     return rid_counter++
@@ -48,6 +59,12 @@ class Pump
         @removeAllEvents "rid_#{rid}"
         callback.apply this, arguments
         return
+    if obj.type == 'presence' && obj.data
+      key = obj.channel
+      if obj.data == 'unavailable'
+        delete @mypresence[key]
+      else
+        @mypresence[key] = obj
     str = JSON.stringify(obj)
     @socket.send str
     return this
@@ -115,6 +132,7 @@ class Pump
       if payload.type == 'pong'
         @state = 'confirmed'
         @emit 'connection_confirmed'
+        @_resendPresences()
       return
     return
 
@@ -122,7 +140,6 @@ class Pump
     @sessionId = null
     @state = 'disconnected'
     @emit 'disconnect'
-    @doReconnect() if @reconnect
     return
   
   onMessage: (data) ->
@@ -159,6 +176,7 @@ class Pump
           else
             if key of @roster
               @roster[key] = {}
+            delete @mypresence[key]
           changed = true
         else
           if session_id of @roster[key]
@@ -171,6 +189,13 @@ class Pump
       @emit 'presenceChanged', { channel: key, state: state, session_id: session_id, user_id: user_id, data: payload.data }
     return
   
+  _resendPresences: () ->
+    if @debug
+      console.log 'DEBUG: _resendPresences', @mypresence
+    for own key, value of @mypresence when value
+      @send value
+    return
+    
   _timeHandler: (payload) ->
     client_time = new Date().getTime()            # dec 1               # dec2
     server_time = payload.ts                      # dec 2               # dec1
@@ -202,23 +227,4 @@ class Pump
         count += 1
     return count
     
-  doReconnect: ->
-    return if @_reconnectInterval
-
-    clear = () =>
-      clearInterval @_reconnectInterval
-      @_reconnectInterval = null
-
-    reconnect = () =>
-      if @socket.connecting
-        # do nothing
-      else if @socket.connected
-        clear()
-      else
-        @emit 'reconnecting'
-        @connect()
-      
-    @_reconnectInterval = setInterval reconnect, 3000
-    return
-
 this.Pump = Pump

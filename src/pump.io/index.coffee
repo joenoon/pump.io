@@ -8,7 +8,7 @@ io = require 'socket.io'
 fs = require 'fs'
 url = require 'url'
 
-clientVersion = '0.0.6'
+clientVersion = '0.0.7'
 
 random_number_between = (low, high) ->
   Math.floor(Math.random() * (high - low + 1)) + low
@@ -36,7 +36,7 @@ class Pump extends EventEmitter
     @server.use () =>
       @_checkRequest.apply(this, arguments)
       return
-    @server.use connect.bodyDecoder()
+    @server.use connect.bodyParser()
     @server.use connect.methodOverride()
     @server.use connect.errorHandler({ dumpExceptions: true, showStack: true })
     @server.use @server.router

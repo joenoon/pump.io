@@ -11,7 +11,7 @@ pump = Pump.create
   port: 3001
   host: '0.0.0.0'
 
-pump.server.use express.staticProvider("#{__dirname}/public")
+pump.server.use express.static("#{__dirname}/public")
 
 pump.useAll(Pump.core_listeners)
 pump.useAll(Pump.db_listeners)
