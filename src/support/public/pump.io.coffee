@@ -78,7 +78,7 @@ class Pump
     if parts.length == 2 then return parts[0] else return ""
 
   connect: ->
-    return if @state in [ 'confirmed', 'connected', 'connecting' ]
+    return if @state in [ 'connected', 'connecting' ]
     @state = 'connecting'
     @socket.connect()
     return
@@ -128,12 +128,7 @@ class Pump
     @sessionId = @socket.transport.sessionid
     @state = 'connected'
     @emit 'connect'
-    @send { type: 'ping' }, (payload) =>
-      if payload.type == 'pong'
-        @state = 'confirmed'
-        @emit 'connection_confirmed'
-        @_resendPresences()
-      return
+    @_resendPresences()
     return
 
   onDisconnect: ->

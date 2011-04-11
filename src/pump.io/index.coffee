@@ -8,7 +8,7 @@ io = require 'socket.io'
 fs = require 'fs'
 url = require 'url'
 
-clientVersion = '0.0.7'
+clientVersion = '0.0.8'
 
 random_number_between = (low, high) ->
   Math.floor(Math.random() * (high - low + 1)) + low
